@@ -30,19 +30,37 @@
     <!-- <div id="word">
     
     </div> -->
-    <audio id="myAudio" src="./sound/WayBackHome-SHAUN-5564971.mp3" autoplay></audio>
+    <audio id="myAudio" src="./sound/WayBackHome-SHAUN-5564971.mp3" autoplay muted preload="auto" loop></audio>
+
     <script type="module">
         import * as THREE from "https://cdn.skypack.dev/three@0.136.0";
         import { OrbitControls } from "https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/OrbitControls";
 
         console.clear();
-        window.addEventListener('load', function () {
-        // Lấy thẻ audio
-        var audio = document.getElementById('myAudio');
+        // Phát nhạc khi tải trang
+function playMusic() {
+    var audio = document.getElementById('myAudio');
+    if (audio) {
+        audio.muted = false; // Bỏ mute
+        audio.play().catch(function(error) {
+            // Nếu autoplay bị chặn, phát khi user click
+            document.addEventListener('click', function() {
+                audio.muted = false;
+                audio.play();
+            }, { once: true });
+        });
+    }
+}
 
-        // Phát âm thanh
-        audio.play();
-      });
+// Thử phát ngay khi DOM sẵn sàng
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', playMusic);
+} else {
+    playMusic();
+}
+
+// Backup: thử lại khi window load
+window.addEventListener('load', playMusic);
         let scene = new THREE.Scene();
         scene.background = new THREE.Color(0x160016);
         let camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 1, 1000);
