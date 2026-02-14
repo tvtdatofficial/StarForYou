@@ -1,178 +1,588 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dải Ngân Hà</title>
-</head>
-<style>
+
+    <!-- Icon trái tim Valentine -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M50,88 C20,60 5,45 5,30 C5,15 20,5 35,5 C42,5 50,12 50,12 C50,12 58,5 65,5 C80,5 95,15 95,30 C95,45 80,60 50,88Z' fill='%23ff69b4'/><polygon points='50,25 53,35 63,35 55,42 58,52 50,46 42,52 45,42 37,35 47,35' fill='white'/><polygon points='30,35 32,40 37,40 33,44 35,49 30,46 25,49 27,44 23,40 28,40' fill='white' opacity='0.8'/><polygon points='70,35 72,40 77,40 73,44 75,49 70,46 65,49 67,44 63,40 68,40' fill='white' opacity='0.8'/></svg>"
+    />
+  </head>
+  <style>
     @import "https://fonts.googleapis.com/css2?family=Megrim&display=swap";
 
     body {
-        overflow: hidden;
-        margin: 0;
+      overflow: hidden;
+      margin: 0;
     }
 
     #word {
-        font-family: Megrim, cursive;
-        font-size: 20vh;
-        position: absolute;
-        margin: 10;
-        /*bottom: 0;*/
-        color: #fc0;
-        -webkit-text-stroke: 0.15vh #c0f;
+      font-family: Megrim, cursive;
+      font-size: 20vh;
+      position: absolute;
+      margin: 10;
+      color: #fc0;
+      -webkit-text-stroke: 0.15vh #c0f;
     }
-</style>
 
-<body>
-    <!-- <div id="word">
-    
-    </div> -->
-    <audio id="myAudio" src="./sound/WayBackHome-SHAUN-5564971.mp3" autoplay muted preload="auto" loop></audio>
+    /* Overlay khi xem ảnh phóng to */
+    #imageOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    #imageOverlay.show {
+      display: flex;
+      opacity: 1;
+    }
+
+    #imageOverlay img {
+      max-width: 85%;
+      max-height: 85%;
+      border-radius: 12px;
+      box-shadow:
+        0 0 60px rgba(255, 255, 255, 0.2),
+        0 0 120px rgba(100, 50, 255, 0.4),
+        0 0 180px rgba(227, 155, 0, 0.2);
+      transform: scale(0.7) rotate(-5deg);
+      transition: transform 0.5s ease;
+    }
+
+    #imageOverlay.show img {
+      transform: scale(1) rotate(0deg);
+    }
+
+    /* Hint text */
+    #hint {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgba(255, 255, 255, 0.5);
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      pointer-events: none;
+      z-index: 100;
+      text-shadow: 0 0 10px rgba(100, 50, 255, 0.5);
+    }
+
+    /* Close hint */
+    #closeHint {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgba(255, 255, 255, 0.6);
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      pointer-events: none;
+      z-index: 1001;
+    }
+
+    /* Sparkle stars around enlarged image */
+    .sparkle {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: linear-gradient(135deg, #ff69b4, #ff1493, #ffb6c1);
+      clip-path: polygon(
+        50% 0%,
+        60% 40%,
+        100% 50%,
+        60% 60%,
+        50% 100%,
+        40% 60%,
+        0% 50%,
+        40% 40%
+      );
+      animation: twinkle 1.5s ease-in-out infinite;
+      pointer-events: none;
+      box-shadow:
+        0 0 10px #ff69b4,
+        0 0 20px #ff1493;
+    }
+    @keyframes twinkle {
+      0%,
+      100% {
+        opacity: 0.2;
+        transform: scale(0.6);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1.3);
+      }
+    }
+  </style>
+
+  <body>
+    <audio
+      id="myAudio"
+      src="./sound/Daydream.mp3"
+      autoplay
+      muted
+      preload="auto"
+      loop
+    ></audio>
+
+    <!-- Overlay để hiển thị ảnh phóng to -->
+    <div id="imageOverlay">
+      <img id="enlargedImage" src="" alt="Enlarged view" />
+      <div id="closeHint">Click hoặc nhấn ESC để đóng</div>
+    </div>
+
+    <div id="hint">✨ Click vào ảnh để xem chi tiết ✨</div>
 
     <script type="module">
-        import * as THREE from "https://cdn.skypack.dev/three@0.136.0";
-        import { OrbitControls } from "https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/OrbitControls";
+      import * as THREE from "https://cdn.skypack.dev/three@0.136.0";
+      import { OrbitControls } from "https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/OrbitControls";
 
-        console.clear();
-        // Phát nhạc khi tải trang
-function playMusic() {
-    var audio = document.getElementById('myAudio');
-    if (audio) {
-        audio.muted = false; // Bỏ mute
-        audio.play().catch(function(error) {
-            // Nếu autoplay bị chặn, phát khi user click
-            document.addEventListener('click', function() {
+      console.clear();
+
+      // Phát nhạc khi tải trang
+      function playMusic() {
+        var audio = document.getElementById("myAudio");
+        if (audio) {
+          audio.muted = false;
+          audio.play().catch(function (error) {
+            document.addEventListener(
+              "click",
+              function () {
                 audio.muted = false;
                 audio.play();
-            }, { once: true });
-        });
-    }
-}
-
-// Thử phát ngay khi DOM sẵn sàng
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', playMusic);
-} else {
-    playMusic();
-}
-
-// Backup: thử lại khi window load
-window.addEventListener('load', playMusic);
-        let scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x160016);
-        let camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 1, 1000);
-        camera.position.set(0, 4, 21);
-        let renderer = new THREE.WebGLRenderer();
-        renderer.setSize(innerWidth, innerHeight);
-        document.body.appendChild(renderer.domElement);
-        window.addEventListener("resize", event => {
-            camera.aspect = innerWidth / innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(innerWidth, innerHeight);
-        })
-
-        let controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.enablePan = false;
-
-        let gu = {
-            time: { value: 0 }
-        }
-
-        let sizes = [];
-        let shift = [];
-        let pushShift = () => {
-            shift.push(
-                Math.random() * Math.PI,
-                Math.random() * Math.PI * 2,
-                (Math.random() * 0.9 + 0.1) * Math.PI * 0.1,
-                Math.random() * 0.9 + 0.1
+              },
+              { once: true },
             );
+          });
         }
-        let pts = new Array(50000).fill().map(p => {
-            sizes.push(Math.random() * 1.5 + 0.5);
-            pushShift();
-            return new THREE.Vector3().randomDirection().multiplyScalar(Math.random() * 0.5 + 9.5);
-        })
-        for (let i = 0; i < 100000; i++) {
-            let r = 10, R = 40;
-            let rand = Math.pow(Math.random(), 1.5);
-            let radius = Math.sqrt(R * R * rand + (1 - rand) * r * r);
-            pts.push(new THREE.Vector3().setFromCylindricalCoords(radius, Math.random() * 2 * Math.PI, (Math.random() - 0.5) * 2));
-            sizes.push(Math.random() * 1.5 + 0.5);
-            pushShift();
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", playMusic);
+      } else {
+        playMusic();
+      }
+      window.addEventListener("load", playMusic);
+
+      let scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x160016);
+      let camera = new THREE.PerspectiveCamera(
+        60,
+        innerWidth / innerHeight,
+        1,
+        1000,
+      );
+      camera.position.set(0, 4, 21);
+      let renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(innerWidth, innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      window.addEventListener("resize", (event) => {
+        camera.aspect = innerWidth / innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(innerWidth, innerHeight);
+      });
+
+      let controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.enablePan = false;
+
+      let gu = {
+        time: { value: 0 },
+      };
+
+      // ===== TẠO CÁC VÌ SAO =====
+      let sizes = [];
+      let shift = [];
+      let pushShift = () => {
+        shift.push(
+          Math.random() * Math.PI,
+          Math.random() * Math.PI * 2,
+          (Math.random() * 0.9 + 0.1) * Math.PI * 0.1,
+          Math.random() * 0.9 + 0.1,
+        );
+      };
+
+      let pts = new Array(50000).fill().map((p) => {
+        sizes.push(Math.random() * 1.5 + 0.5);
+        pushShift();
+        return new THREE.Vector3()
+          .randomDirection()
+          .multiplyScalar(Math.random() * 0.5 + 9.5);
+      });
+
+      for (let i = 0; i < 100000; i++) {
+        let r = 10,
+          R = 40;
+        let rand = Math.pow(Math.random(), 1.5);
+        let radius = Math.sqrt(R * R * rand + (1 - rand) * r * r);
+        pts.push(
+          new THREE.Vector3().setFromCylindricalCoords(
+            radius,
+            Math.random() * 2 * Math.PI,
+            (Math.random() - 0.5) * 2,
+          ),
+        );
+        sizes.push(Math.random() * 1.5 + 0.5);
+        pushShift();
+      }
+
+      let g = new THREE.BufferGeometry().setFromPoints(pts);
+      g.setAttribute("sizes", new THREE.Float32BufferAttribute(sizes, 1));
+      g.setAttribute("shift", new THREE.Float32BufferAttribute(shift, 4));
+
+      let m = new THREE.PointsMaterial({
+        size: 0.125,
+        transparent: true,
+        depthTest: false,
+        blending: THREE.AdditiveBlending,
+        onBeforeCompile: (shader) => {
+          shader.uniforms.time = gu.time;
+          shader.vertexShader = `
+                    uniform float time;
+                    attribute float sizes;
+                    attribute vec4 shift;
+                    varying vec3 vColor;
+                    ${shader.vertexShader}
+                `
+            .replace(`gl_PointSize = size;`, `gl_PointSize = size * sizes;`)
+            .replace(
+              `#include <color_vertex>`,
+              `#include <color_vertex>
+                    float d = length(abs(position) / vec3(40., 10., 40));
+                    d = clamp(d, 0., 1.);
+                    vColor = mix(vec3(227., 155., 0.), vec3(100., 50., 255.), d) / 255.;
+                    `,
+            )
+            .replace(
+              `#include <begin_vertex>`,
+              `#include <begin_vertex>
+                    float t = time;
+                    float moveT = mod(shift.x + shift.z * t, PI2);
+                    float moveS = mod(shift.y + shift.z * t, PI2);
+                    transformed += vec3(cos(moveS) * sin(moveT), cos(moveT), sin(moveS) * sin(moveT)) * shift.a;
+                    `,
+            );
+          shader.fragmentShader = `
+                    varying vec3 vColor;
+                    ${shader.fragmentShader}
+                `
+            .replace(
+              `#include <clipping_planes_fragment>`,
+              `#include <clipping_planes_fragment>
+                    float d = length(gl_PointCoord.xy - 0.5);
+                    `,
+            )
+            .replace(
+              `vec4 diffuseColor = vec4( diffuse, opacity );`,
+              `vec4 diffuseColor = vec4( vColor, smoothstep(0.5, 0.1, d) );`,
+            );
+        },
+      });
+
+      let p = new THREE.Points(g, m);
+      p.rotation.order = "ZYX";
+      p.rotation.z = 0.2;
+      scene.add(p);
+
+      // ===== TẠO CÁC HÌNH ẢNH NỔI TRÊN THIÊN HÀ =====
+      const imageGroup = new THREE.Group();
+      scene.add(imageGroup);
+
+      // Đường dẫn ảnh của bạn
+      const imagePath = "./images/ThuCute.png";
+
+      // Load texture từ ảnh
+      const textureLoader = new THREE.TextureLoader();
+      const imageTexture = textureLoader.load(imagePath);
+
+      // Số lượng ảnh hiển thị
+      const numImages = 15;
+      const imageSprites = [];
+
+      // Tạo các ảnh phân bố trên thiên hà
+      for (let i = 0; i < numImages; i++) {
+        const spriteMaterial = new THREE.SpriteMaterial({
+          map: imageTexture,
+          transparent: true,
+          opacity: 0.95,
+          blending: THREE.NormalBlending,
+          depthTest: true,
+          depthWrite: false,
+        });
+
+        const sprite = new THREE.Sprite(spriteMaterial);
+
+        // Kích thước ảnh
+        const scale = 1.8 + Math.random() * 1.2;
+        sprite.scale.set(scale, scale, 1);
+
+        // Vị trí phân bố theo dải thiên hà
+        let angle = (i / numImages) * Math.PI * 2 + Math.random() * 0.3;
+        let radius = 12 + Math.random() * 18;
+        let height = (Math.random() - 0.5) * 2.5;
+
+        sprite.position.set(
+          Math.cos(angle) * radius,
+          height,
+          Math.sin(angle) * radius,
+        );
+
+        // Lưu thông tin animation và đường dẫn ảnh
+        sprite.userData = {
+          originalPos: sprite.position.clone(),
+          angle: angle,
+          radius: radius,
+          speed: 0.08 + Math.random() * 0.08,
+          floatSpeed: 0.4 + Math.random() * 0.4,
+          floatOffset: Math.random() * Math.PI * 2,
+          imagePath: imagePath,
+          isImage: true,
+        };
+
+        imageSprites.push(sprite);
+        imageGroup.add(sprite);
+      }
+
+      // ===== THÊM CÁC NGÔI SAO LẤP LÁNH XUNG QUANH =====
+      function createStarSparkles() {
+        const starGeometry = new THREE.BufferGeometry();
+        const starCount = 300;
+        const positions = new Float32Array(starCount * 3);
+        const starSizes = new Float32Array(starCount);
+
+        for (let i = 0; i < starCount; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const radius = 8 + Math.random() * 35;
+          const height = (Math.random() - 0.5) * 6;
+
+          positions[i * 3] = Math.cos(angle) * radius;
+          positions[i * 3 + 1] = height;
+          positions[i * 3 + 2] = Math.sin(angle) * radius;
+
+          starSizes[i] = Math.random() * 3 + 1;
         }
 
-        let g = new THREE.BufferGeometry().setFromPoints(pts);
-        g.setAttribute("sizes", new THREE.Float32BufferAttribute(sizes, 1));
-        g.setAttribute("shift", new THREE.Float32BufferAttribute(shift, 4));
-        let m = new THREE.PointsMaterial({
-            size: 0.125,
-            transparent: true,
-            depthTest: false,
-            blending: THREE.AdditiveBlending,
-            onBeforeCompile: shader => {
-                shader.uniforms.time = gu.time;
-                shader.vertexShader = `
-      uniform float time;
-      attribute float sizes;
-      attribute vec4 shift;
-      varying vec3 vColor;
-      ${shader.vertexShader}
-    `.replace(
-                    `gl_PointSize = size;`,
-                    `gl_PointSize = size * sizes;`
-                ).replace(
-                    `#include <color_vertex>`,
-                    `#include <color_vertex>
-        float d = length(abs(position) / vec3(40., 10., 40));
-        d = clamp(d, 0., 1.);
-        vColor = mix(vec3(227., 155., 0.), vec3(100., 50., 255.), d) / 255.;
-      `
-                ).replace(
-                    `#include <begin_vertex>`,
-                    `#include <begin_vertex>
-        float t = time;
-        float moveT = mod(shift.x + shift.z * t, PI2);
-        float moveS = mod(shift.y + shift.z * t, PI2);
-        transformed += vec3(cos(moveS) * sin(moveT), cos(moveT), sin(moveS) * sin(moveT)) * shift.a;
-      `
-                );
-                console.log(shader.vertexShader);
-                shader.fragmentShader = `
-      varying vec3 vColor;
-      ${shader.fragmentShader}
-    `.replace(
-                    `#include <clipping_planes_fragment>`,
-                    `#include <clipping_planes_fragment>
-        float d = length(gl_PointCoord.xy - 0.5);
-        //if (d > 0.5) discard;
-      `
-                ).replace(
-                    `vec4 diffuseColor = vec4( diffuse, opacity );`,
-                    `vec4 diffuseColor = vec4( vColor, smoothstep(0.5, 0.1, d)/* * 0.5 + 0.5*/ );`
-                );
-                console.log(shader.fragmentShader);
-            }
-        });
-        let p = new THREE.Points(g, m);
-        p.rotation.order = "ZYX";
-        p.rotation.z = 0.2;
-        scene.add(p)
+        starGeometry.setAttribute(
+          "position",
+          new THREE.BufferAttribute(positions, 3),
+        );
+        starGeometry.setAttribute(
+          "size",
+          new THREE.BufferAttribute(starSizes, 1),
+        );
 
-        let clock = new THREE.Clock();
+        // Tạo texture hình ngôi sao 4 cánh
+        const canvas = document.createElement("canvas");
+        canvas.width = 64;
+        canvas.height = 64;
+        const ctx = canvas.getContext("2d");
 
-        renderer.setAnimationLoop(() => {
-            controls.update();
-            let t = clock.getElapsedTime() * 0.5;
-            gu.time.value = t * Math.PI;
-            p.rotation.y = t * 0.05;
-            renderer.render(scene, camera);
+        ctx.fillStyle = "white";
+        ctx.beginPath();
+        ctx.moveTo(32, 0);
+        ctx.lineTo(36, 28);
+        ctx.lineTo(64, 32);
+        ctx.lineTo(36, 36);
+        ctx.lineTo(32, 64);
+        ctx.lineTo(28, 36);
+        ctx.lineTo(0, 32);
+        ctx.lineTo(28, 28);
+        ctx.closePath();
+        ctx.fill();
+
+        const starTexture = new THREE.CanvasTexture(canvas);
+
+        const starMaterial = new THREE.PointsMaterial({
+          size: 0.6,
+          map: starTexture,
+          transparent: true,
+          blending: THREE.AdditiveBlending,
+          depthTest: false,
+          color: 0xff69b4, // Màu hồng (Hot Pink)
         });
+        const stars = new THREE.Points(starGeometry, starMaterial);
+        scene.add(stars);
+        return stars;
+      }
+
+      const sparkleStars = createStarSparkles();
+
+      // ===== XỬ LÝ CLICK VÀO ẢNH =====
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+      const overlay = document.getElementById("imageOverlay");
+      const enlargedImage = document.getElementById("enlargedImage");
+      let isOverlayOpen = false;
+
+      // Tạo sparkles cho overlay
+      function createOverlaySparkles() {
+        // Xóa sparkles cũ
+        overlay.querySelectorAll(".sparkle").forEach((s) => s.remove());
+
+        // Tạo sparkles mới xung quanh viền
+        const positions = [
+          { left: "5%", top: "10%" },
+          { left: "10%", top: "50%" },
+          { left: "5%", top: "85%" },
+          { left: "50%", top: "5%" },
+          { left: "50%", top: "92%" },
+          { left: "92%", top: "15%" },
+          { left: "90%", top: "50%" },
+          { left: "93%", top: "80%" },
+          { left: "25%", top: "8%" },
+          { left: "75%", top: "90%" },
+          { left: "15%", top: "70%" },
+          { left: "85%", top: "30%" },
+        ];
+
+        positions.forEach((pos, i) => {
+          const sparkle = document.createElement("div");
+          sparkle.className = "sparkle";
+          sparkle.style.left = pos.left;
+          sparkle.style.top = pos.top;
+          sparkle.style.animationDelay = i * 0.15 + "s";
+          sparkle.style.width = 15 + Math.random() * 15 + "px";
+          sparkle.style.height = sparkle.style.width;
+
+          // Màu hồng ngẫu nhiên cho mỗi sparkle
+          const pinkColors = [
+            "linear-gradient(135deg, #ff69b4, #ff1493)",
+            "linear-gradient(135deg, #ffb6c1, #ff69b4)",
+            "linear-gradient(135deg, #ff1493, #db7093)",
+            "linear-gradient(135deg, #ffc0cb, #ff69b4)",
+            "linear-gradient(135deg, #ff82ab, #ff1493)",
+          ];
+          const randomPink =
+            pinkColors[Math.floor(Math.random() * pinkColors.length)];
+          sparkle.style.background = randomPink;
+          sparkle.style.boxShadow = "0 0 10px #ff69b4, 0 0 20px #ff1493";
+
+          overlay.appendChild(sparkle);
+        });
+      }
+
+      // Mở overlay hiển thị ảnh phóng to
+      function openOverlay(imagePath) {
+        enlargedImage.src = imagePath;
+        overlay.style.display = "flex";
+        createOverlaySparkles();
+
+        setTimeout(() => {
+          overlay.classList.add("show");
+        }, 10);
+
+        isOverlayOpen = true;
+        controls.enabled = false;
+      }
+
+      // Đóng overlay
+      function closeOverlay() {
+        overlay.classList.remove("show");
+        setTimeout(() => {
+          overlay.style.display = "none";
+        }, 400);
+        isOverlayOpen = false;
+        controls.enabled = true;
+      }
+
+      // Click vào overlay để đóng
+      overlay.addEventListener("click", closeOverlay);
+
+      // Nhấn ESC để đóng
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && isOverlayOpen) {
+          closeOverlay();
+        }
+      });
+
+      // Xử lý click vào canvas
+      renderer.domElement.addEventListener("click", (event) => {
+        if (isOverlayOpen) return;
+
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(imageSprites);
+
+        if (intersects.length > 0) {
+          const clickedSprite = intersects[0].object;
+          if (clickedSprite.userData.isImage) {
+            openOverlay(clickedSprite.userData.imagePath);
+          }
+        }
+      });
+
+      // Thay đổi cursor khi hover qua ảnh
+      renderer.domElement.addEventListener("mousemove", (event) => {
+        if (isOverlayOpen) return;
+
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(imageSprites);
+
+        if (intersects.length > 0) {
+          renderer.domElement.style.cursor = "pointer";
+        } else {
+          renderer.domElement.style.cursor = "default";
+        }
+      });
+
+      // ===== ANIMATION LOOP =====
+      let clock = new THREE.Clock();
+
+      renderer.setAnimationLoop(() => {
+        controls.update();
+        let t = clock.getElapsedTime() * 0.5;
+        gu.time.value = t * Math.PI;
+        p.rotation.y = t * 0.05;
+
+        // Animate các ảnh
+        imageSprites.forEach((sprite, index) => {
+          const data = sprite.userData;
+
+          // Xoay theo thiên hà
+          const newAngle = data.angle + t * data.speed * 0.1;
+          sprite.position.x = Math.cos(newAngle) * data.radius;
+          sprite.position.z = Math.sin(newAngle) * data.radius;
+
+          // Lơ lửng lên xuống
+          sprite.position.y =
+            data.originalPos.y +
+            Math.sin(t * data.floatSpeed + data.floatOffset) * 0.5;
+
+          // Hiệu ứng scale nhẹ
+          const scaleBase = 1.8 + (index % 3) * 0.3;
+          const scalePulse = 1 + Math.sin(t * 2 + index) * 0.03;
+          sprite.scale.setScalar(scaleBase * scalePulse);
+        });
+
+        // Xoay group ảnh cùng với thiên hà
+        imageGroup.rotation.y = t * 0.05;
+        imageGroup.rotation.z = 0.2;
+
+        // Animate sparkle stars
+        sparkleStars.rotation.y = t * 0.03;
+
+        renderer.render(scene, camera);
+      });
     </script>
-</body>
-
+  </body>
 </html>
